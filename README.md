@@ -1,6 +1,6 @@
 # CustomTerminal
 
-Terminal gráfico feito em Python com interface moderna e funcionalidades inspiradas no CMD/Powershell, mas com visual escuro, responsivo e altamente personalizável.
+Terminal gráfico feito em Python com interface moderna e funcionalidades integradas do CMD/Powershell, com visual escuro, responsivo e personalizável.
 
 ---
 
