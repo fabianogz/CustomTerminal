@@ -17,6 +17,12 @@ Terminal gráfico feito em Python com interface moderna e funcionalidades inspir
 
 ---
 
+### 📄 Licença
+
+Este projeto está licenciado sob a **[Licença MIT](LICENSE)**.
+
+Você pode usar, modificar, redistribuir ou integrar este código em seus próprios projetos, inclusive para fins comerciais. Apenas mantenha os créditos originais conforme especificado na licença.
+
 ### 🛠️ Requisitos
 
 - Python 3.8+
@@ -26,12 +32,3 @@ Instale com:
 
 ```bash
 pip install customtkinter
-
-
----
-
-### 📄 Licença
-
-Este projeto está licenciado sob a **[Licença MIT](LICENSE)**.
-
-Você pode usar, modificar, redistribuir ou integrar este código em seus próprios projetos, inclusive para fins comerciais. Apenas mantenha os créditos originais conforme especificado na licença.
