@@ -1,116 +1,78 @@
 import customtkinter as ctk
+import tkinter as tk
 import subprocess
-import threading
-
-ctk.set_appearance_mode("dark")
-ctk.set_default_color_theme("dark-blue")
 
 class TerminalApp(ctk.CTk):
     def __init__(self):
         super().__init__()
 
-        self.overrideredirect(True)
-        self.geometry("900x520")
-        self.minsize(600, 400)
-        self.configure(bg="#000000")
+        self.title("Custom Terminal")
+        self.geometry("800x600")
 
-        self._offsetx = 0
-        self._offsety = 0
-        self._resizing = False
-        self._resize_border_size = 10
+        self.output_text = tk.Text(self, wrap="word", bg="black", fg="white", insertbackground="white")
+        self.output_text.pack(expand=True, fill="both", padx=10, pady=10)
 
-        self.title_bar = ctk.CTkFrame(self, height=35, fg_color="#111111", corner_radius=15)
-        self.title_bar.pack(fill="x", side="top")
-        self.title_bar.bind("<Button-1>", self.click_window)
-        self.title_bar.bind("<B1-Motion>", self.move_window)
+        input_frame = ctk.CTkFrame(self)
+        input_frame.pack(fill="x", padx=10, pady=10)
 
-        self.close_button = ctk.CTkButton(
-            self.title_bar, text="X", width=30, height=25, command=self.destroy,
-            fg_color="red", hover_color="#aa0000", text_color="white", font=("Consolas", 13)
-        )
-        self.close_button.pack(side="right", padx=10, pady=5)
+        self.command_entry = ctk.CTkEntry(input_frame)
+        self.command_entry.pack(side="left", expand=True, fill="x", padx=(0, 10))
+        self.command_entry.bind("<Return>", self.execute_command)
 
-        self.output_box = ctk.CTkTextbox(self, wrap="word", font=("Consolas", 13), corner_radius=0)
-        self.output_box.place(x=0, y=35, relwidth=1, relheight=0.85)
-        self.output_box.configure(state="disabled", fg_color="#000000", text_color="#ffffff")
+        execute_button = ctk.CTkButton(input_frame, text="Executar", command=self.execute_command)
+        execute_button.pack(side="left")
 
-        self.entry = ctk.CTkEntry(self, font=("Consolas", 13), placeholder_text="Digite um comando...", corner_radius=0, height=35)
-        self.entry.place(relx=0, rely=0.92, relwidth=1)
-        self.entry.bind("<Return>", self.execute_command)
+        self.shell_type = "powershell"  
 
-        self.bind("<Motion>", self.resize_cursor)
-        self.bind("<ButtonPress-1>", self.start_resize)
-        self.bind("<B1-Motion>", self.do_resize)
-
-    def click_window(self, event):
-        self._offsetx = event.x
-        self._offsety = event.y
-
-    def move_window(self, event):
-        if not self._resizing:
-            x = event.x_root - self._offsetx
-            y = event.y_root - self._offsety
-            self.geometry(f'+{x}+{y}')
+        self.setup_tags()
 
     def execute_command(self, event=None):
-        command = self.entry.get()
-        self.entry.delete(0, "end")
-        self.print_output(f"> {command}\n", "white")
-        threading.Thread(target=self.run_command, args=(command,), daemon=True).start()
+        command = self.command_entry.get().strip()
+        if not command:
+            return
 
-    def run_command(self, command):
+        self.output_text.insert("end", f"> {command}\n", "neutral")
+
         try:
+            if self.shell_type == "powershell":
+                full_command = ["powershell", "-Command", command]
+            else:
+                full_command = command
+
             result = subprocess.run(
-                ["powershell", "-Command", command],
-                capture_output=True, text=True, shell=True
+                full_command,
+                shell=True,
+                capture_output=True,
+                text=True,
+                encoding="cp850",
+                errors="replace"
             )
+
+
             stdout = result.stdout.strip()
             stderr = result.stderr.strip()
 
             if stdout:
-                self.print_output(stdout + "\n", "green")
+                self.output_text.insert("end", stdout + "\n", "success")
+
             if stderr:
-                self.print_output(stderr + "\n", "red")
+                self.output_text.insert("end", stderr + "\n", "error")
+
+            if not stdout and not stderr:
+                self.output_text.insert("end", "Comando executado sem saída.\n", "neutral")
+
+            self.output_text.see("end")
 
         except Exception as e:
-            self.print_output(f"Erro: {e}\n", "red")
+            self.output_text.insert("end", f"Erro ao executar comando: {str(e)}\n", "error")
 
-    # Exibir saída com cor
-    def print_output(self, text, color="white"):
-        self.output_box.configure(state="normal")
-        tag_name = f"tag_{color}_{self.output_box.index('end')}"
-        self.output_box.insert("end", text)
-        self.output_box.tag_config(tag_name, foreground=color)
-        start_index = f"end-{len(text)}c"
-        self.output_box.tag_add(tag_name, start_index, "end")
-        self.output_box.see("end")
-        self.output_box.configure(state="disabled")
+        self.command_entry.delete(0, "end")
 
-    # Redimensionamento visual
-    def resize_cursor(self, event):
-        x, y = event.x, event.y
-        if x >= self.winfo_width() - self._resize_border_size and y >= self.winfo_height() - self._resize_border_size:
-            self.config(cursor="size_nw_se")
-        else:
-            self.config(cursor="arrow")
+    def setup_tags(self):
+        self.output_text.tag_configure("success", foreground="green")
+        self.output_text.tag_configure("error", foreground="red")
+        self.output_text.tag_configure("neutral", foreground="white")
 
-    def start_resize(self, event):
-        x, y = event.x, event.y
-        if x >= self.winfo_width() - self._resize_border_size and y >= self.winfo_height() - self._resize_border_size:
-            self._resizing = True
-            self._resize_start_x = event.x
-            self._resize_start_y = event.y
-        else:
-            self._resizing = False
-
-    def do_resize(self, event):
-        if self._resizing:
-            dx = event.x - self._resize_start_x
-            dy = event.y - self._resize_start_y
-            new_width = self.winfo_width() + dx
-            new_height = self.winfo_height() + dy
-            self.geometry(f"{new_width}x{new_height}")
-
-if __name__ == "__main_S_":
+if __name__ == "__main__":
     app = TerminalApp()
     app.mainloop()
